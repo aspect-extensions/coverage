@@ -7,29 +7,31 @@ Gathers the coverage.dat files to power common developer workflows.
 # buildifier: disable=function-docstring
 def impl(ctx) -> int:
     out = ctx.std.io.stdout
+    err = ctx.std.io.stderr
     build = ctx.bazel.build(
         "//...",
         events = True,
         bazel_flags = [
             "--isatty=" + str(int(out.is_tty)),
-            # We probably want to abbreviate the following flags under
-            # "--config=coverage"
             "--collect_code_coverage",
-            "--instrumentation_filter=",
-            # See https://github.com/bazel-contrib/bazelrc-preset.bzl/issues/83
-            "--experimental_fetch_all_coverage_outputs",
-            "--experimental_split_coverage_postprocessing",
         ],
         bazel_verb = "test"
     );
 
+    coverage_dat_files = []
     for event in build.events():
-        # TODO: get the paths of produced (or cached) coverage report files
+        if event.kind == "test_result":
+            coverage_dat_files.extend([f.file.removeprefix("file://") for f in event.payload.test_action_output if f.file.endswith("coverage.dat")])
         # TODO: populate a GITHUB_OUTPUT variable so we can use https://github.com/codecov/codecov-action
-        if event.type == "progress":
+        if event.kind == "progress":
             out.write(event.payload.stdout)
-            out.write(event.payload.stderr)
+            err.write(event.payload.stderr)
 
+        if event.kind == "build_finished_id":
+            for file in coverage_dat_files:
+                out.write(file + "\n")
+                out.write(ctx.std.fs.read_to_string(file) + "\n")
+            
     build.wait()
     # TODO: get the delta of changed files from VCS, and render 'incremental' coverage as the default presentation
 
@@ -38,6 +40,6 @@ def impl(ctx) -> int:
 coverage = task(
     implementation = impl,
     args = {
-        "targets": args.positional(minimum = 1, maximum = 30),
+        "targets": args.positional(),
     }
 )
