@@ -1,28 +1,39 @@
 on:
-    push:
-        branches:
-            - main
-    pull_request:
-        branches:
-            - main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - edited
+      - synchronize
+
 jobs:
-    test:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v5
-            - uses: bazel-contrib/setup-bazel@0.15.0
-            - name: Install Aspect CLI
-              uses: jaxxstorm/action-install-gh-release@v2.1.0
-              with:   
-                repo: aspect-build/aspect-cli
-                tag: 2025.40-21-g705e63e
-                asset-name: aspect-cli
-                platform: unknown_linux
-                arch: x86_64
-                extension-matching: disable
-                rename-to: aspect
-                chmod: 0755
-            - name: Test
-              working-directory: example
-              shell: sh
-              run: $GITHUB_WORKSPACE/example/README.md || exit 1
+  org-checks:
+    uses: aspect-extensions/.github/.github/workflows/org-check.yaml@main
+    secrets: inherit
+    permissions:
+      contents: read
+      pull-requests: write
+  test:
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v5
+        - uses: bazel-contrib/setup-bazel@0.15.0
+        - name: Install Aspect CLI
+          uses: jaxxstorm/action-install-gh-release@v2.1.0
+          with:   
+            repo: aspect-build/aspect-cli
+            tag: 2025.40-21-g705e63e
+            asset-name: aspect-cli
+            platform: unknown_linux
+            arch: x86_64
+            extension-matching: disable
+            rename-to: aspect
+            chmod: 0755
+        - name: Test
+          working-directory: example
+          shell: sh
+          run: $GITHUB_WORKSPACE/example/README.md || exit 1
