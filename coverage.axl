@@ -35,6 +35,8 @@ def impl(ctx) -> int:
     build.wait()
     # TODO: get the delta of changed files from VCS, and render 'incremental' coverage as the default presentation
 
+    # Async: Cleanup disk space consumed by the .dat files.
+    ctx.std.process.command("rm").arg("-f").args(coverage_dat_files).spawn()
     return 0
 
 coverage = task(
