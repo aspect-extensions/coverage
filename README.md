@@ -4,3 +4,8 @@ Replacement for the 'bazel coverage' command:
 - forget having a Bazel-specific, Java-based, unmaintained LCOV merger and 'combined report' - that never should have been Bazel's job
 - developers really need git-aware diff to show "incremental coverage" - which of the lines I added or modified are covered by tests?
 - ability to add other enforcement thresholds
+- clean up the coverage .dat files in the output tree after reporting
+
+## Demo
+
+[![asciicast](https://asciinema.org/a/pQCJWxWxONi01bBZcdRgLxEHx.svg)](https://asciinema.org/a/pQCJWxWxONi01bBZcdRgLxEHx)
