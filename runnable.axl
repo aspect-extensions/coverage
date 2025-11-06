@@ -40,11 +40,10 @@ def _spawn(ctx: task_context, state: struct, args: list[str]) -> std.process.chi
         .args(args) \
         .spawn()
 
-
-def runnable(ctx, target: str) -> struct:
+def runnable(ctx) -> struct:
     state = struct(
         ctx = ctx,
-        target = target,
+        target = "@@lcov+//:lcov", # TODO(alexeagle): we can assume there's only one target
         filesets = {},
         target_fileset = {}
     )

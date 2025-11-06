@@ -16,7 +16,8 @@ def impl(ctx) -> int:
         events = True,
         bazel_flags = ["--build_runfile_links"],
     )
-    lcov = runnable(ctx, "@@lcov+//:lcov")
+    
+    lcov = runnable(ctx)
     for event in lcov_build.events():
         lcov.event(event)
 
