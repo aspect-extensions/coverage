@@ -13,12 +13,8 @@ It should locate the coverage.dat files produced by the Python coverage library.
 output="$(aspect coverage //src:my_test)"
 
 # Verify that it produces the expected output - half the functions are covered
-echo "${output}" | grep -q "FNF:2" || {
-    echo >&2 "Functions Found should be 2 '${output}'"
-    exit 1
-}
-echo "${output}" | grep -q "FNH:1" || {
-    echo >&2 "Functions Hit should be 1 '${output}'"
+echo "${output}" | grep -q "50.0%" || {
+    echo >&2 "Functions should be 50% covered: '${output}'"
     exit 1
 }
 ~~~

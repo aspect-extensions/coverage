@@ -1,0 +1,56 @@
+"""Copied from https://github.com/aspect-extensions/run/blob/main/runnable.axl
+TODO(alexeagle): depend on that AXL module instead
+"""
+def _process_bes(state: struct, event: bazel.build.build_event.BuildEvent):
+    filesets = state.filesets
+    target_fileset = state.target_fileset
+    target = state.target
+    if event.kind == "named_set_of_files":
+        filesets[event.id.id] = event.payload.files
+    elif event.kind == "target_completed":
+        if event.id.label == target:
+            for og in event.payload.output_group:
+                if og.name == "default":
+                    target_fileset[event.id.label] = og.file_sets
+
+def _determine_entrypoint(state: struct) -> str | None:
+    filesets = state.filesets
+    target_fileset = state.target_fileset
+    if state.target not in target_fileset:
+        return None
+    targetfs = target_fileset[state.target][0].id
+    files = filesets[targetfs]
+    entrypoint = None
+    for file in files:
+        if len(file.path_prefix):
+            entrypoint = file.file.removeprefix("file://")
+            break
+    return entrypoint
+
+def _spawn(ctx: task_context, state: struct, args: list[str]) -> std.process.child:
+    entrypoint = _determine_entrypoint(state)
+    runfiles = entrypoint + ".runfiles"
+    return ctx.std.process.command(entrypoint)\
+        .current_dir(runfiles) \
+        .env("RUNFILES_DIR", runfiles) \
+        .env("JAVA_RUNFILES", runfiles) \
+        .env("RUNFILES_MANIFEST_FILE", runfiles + "_manifest") \
+        .env("BUILD_WORKSPACE_DIRECTORY", "TODO") \
+        .env("BUILD_WORKING_DIRECTORY", ctx.std.env.current_dir()) \
+        .args(args) \
+        .spawn()
+
+def runnable(ctx) -> struct:
+    state = struct(
+        ctx = ctx,
+        target = "@@lcov+//:lcov", # TODO(alexeagle): we can assume there's only one target
+        filesets = {},
+        target_fileset = {}
+    )
+
+    return struct(
+        event = lambda event: _process_bes(state, event),
+        spawn = lambda ctx, args: _spawn(ctx, state, args),
+    )
+
+spawn = _spawn

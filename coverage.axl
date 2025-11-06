@@ -4,11 +4,24 @@ Implement a 'coverage' task that wraps a test command.
 Gathers the coverage.dat files to power common developer workflows.
 """
 
+load("./runnable.axl", "runnable")
+
 # buildifier: disable=function-docstring
 def impl(ctx) -> int:
     out = ctx.std.io.stdout
     err = ctx.std.io.stderr
-    build = ctx.bazel.build(
+
+    lcov_build = ctx.bazel.build(
+        "@lcov",
+        events = True,
+        bazel_flags = ["--build_runfile_links"],
+    )
+    
+    lcov = runnable(ctx)
+    for event in lcov_build.events():
+        lcov.event(event)
+
+    test = ctx.bazel.build(
         "//...",
         events = True,
         bazel_flags = [
@@ -16,24 +29,28 @@ def impl(ctx) -> int:
             "--collect_code_coverage",
         ],
         bazel_verb = "test"
-    );
+    )
 
     coverage_dat_files = []
-    for event in build.events():
+    for event in test.events():
         if event.kind == "test_result":
-            coverage_dat_files.extend([f.file.removeprefix("file://") for f in event.payload.test_action_output if f.file.endswith("coverage.dat")])
+            coverage_dat_files.extend([
+                f.file.removeprefix("file://")
+                for f in event.payload.test_action_output
+                if f.file.endswith("coverage.dat")
+            ])
         # TODO: populate a GITHUB_OUTPUT variable so we can use https://github.com/codecov/codecov-action
         if event.kind == "progress":
             out.write(event.payload.stdout)
             err.write(event.payload.stderr)
-
-        if event.kind == "build_finished_id":
-            for file in coverage_dat_files:
-                out.write(file + "\n")
-                out.write(ctx.std.fs.read_to_string(file) + "\n")
             
-    build.wait()
+    test.wait()
+
     # TODO: get the delta of changed files from VCS, and render 'incremental' coverage as the default presentation
+    exit = lcov.spawn(ctx, ["--list"] + coverage_dat_files).wait()
+
+    if not exit.success:
+        err.write("\x1b[0;31mERROR\x1b[0m: process exited with code %d\n" % exit.code)
 
     # Async: Cleanup disk space consumed by the .dat files.
     ctx.std.process.command("rm").arg("-f").args(coverage_dat_files).spawn()
