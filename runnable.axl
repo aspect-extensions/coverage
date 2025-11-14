@@ -27,7 +27,7 @@ def _determine_entrypoint(state: struct) -> str | None:
             break
     return entrypoint
 
-def _spawn(ctx: task_context, state: struct, args: list[str]) -> std.process.child:
+def _spawn(ctx: TaskContext, state: struct, args: list[str]) -> std.process.Child:
     entrypoint = _determine_entrypoint(state)
     runfiles = entrypoint + ".runfiles"
     return ctx.std.process.command(entrypoint)\
@@ -40,7 +40,7 @@ def _spawn(ctx: task_context, state: struct, args: list[str]) -> std.process.chi
         .args(args) \
         .spawn()
 
-def runnable(ctx) -> struct:
+def runnable(ctx: TaskContext) -> struct:
     state = struct(
         ctx = ctx,
         target = "@@lcov+//:lcov", # TODO(alexeagle): we can assume there's only one target
