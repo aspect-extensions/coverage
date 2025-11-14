@@ -1,0 +1,5 @@
+axl_local_dep(
+    name = "coverage",
+    path = "..",
+    auto_use_tasks = True,
+)
