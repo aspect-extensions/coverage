@@ -13,26 +13,25 @@ def impl(ctx) -> int:
 
     lcov_build = ctx.bazel.build(
         "@lcov",
-        events = True,
-        bazel_flags = ["--build_runfile_links"],
+        build_events = True,
+        flags = ["--build_runfile_links"],
     )
     
     lcov = runnable(ctx)
-    for event in lcov_build.events():
+    for event in lcov_build.build_events():
         lcov.event(event)
 
-    test = ctx.bazel.build(
+    test = ctx.bazel.test(
         "//...",
-        events = True,
-        bazel_flags = [
+        build_events = True,
+        flags = [
             "--isatty=" + str(int(out.is_tty)),
             "--collect_code_coverage",
         ],
-        bazel_verb = "test"
     )
 
     coverage_dat_files = []
-    for event in test.events():
+    for event in test.build_events():
         if event.kind == "test_result":
             coverage_dat_files.extend([
                 f.file.removeprefix("file://")
