@@ -11,15 +11,26 @@ def impl(ctx) -> int:
     out = ctx.std.io.stdout
     err = ctx.std.io.stderr
 
+    if out.is_tty:
+        print("\x1b[0;32mINFO\x1b[0m: Building @lcov tool")
+    else:
+        print("INFO: Building @lcov tool")
     lcov_build = ctx.bazel.build(
         "@lcov",
         build_events = True,
         flags = ["--build_runfile_links"],
+        inherit_stderr = False
     )
-    
+
     lcov = runnable(ctx)
     for event in lcov_build.build_events():
         lcov.event(event)
+
+    exit = lcov_build.wait()
+
+    if not exit.success:
+        print("Failed to build @lcov tool")
+        return 0
 
     test = ctx.bazel.test(
         "//...",
@@ -42,7 +53,8 @@ def impl(ctx) -> int:
         if event.kind == "progress":
             out.write(event.payload.stdout)
             err.write(event.payload.stderr)
-            
+
+
     test.wait()
 
     # TODO: get the delta of changed files from VCS, and render 'incremental' coverage as the default presentation

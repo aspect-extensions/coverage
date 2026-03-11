@@ -1,7 +1,7 @@
 """Copied from https://github.com/aspect-extensions/run/blob/main/runnable.axl
 TODO(alexeagle): depend on that AXL module instead
 """
-def _process_bes(state: struct, event: bazel.build.build_event.BuildEvent):
+def _process_bes(state: struct, event):
     filesets = state.filesets
     target_fileset = state.target_fileset
     target = state.target
