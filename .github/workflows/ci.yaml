@@ -20,13 +20,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-        - uses: actions/checkout@v5
-        - uses: bazel-contrib/setup-bazel@0.15.0
-        - run: |
-            curl -LO https://github.com/aspect-build/aspect-cli/releases/download/v2025.46.20/aspect-cli-x86_64-unknown-linux-musl
-            chmod +x aspect-cli-x86_64-unknown-linux-musl
-            mv aspect-cli-x86_64-unknown-linux-musl /usr/local/bin/aspect
-        - name: Test
-          working-directory: example
-          shell: sh
-          run: $GITHUB_WORKSPACE/example/README.md || exit 1
+      - uses: actions/checkout@v5
+      - uses: bazel-contrib/setup-bazel@0.15.0
+      - run: |
+          curl -LO https://github.com/aspect-build/aspect-cli/releases/download/v2026.11.8/aspect-cli-x86_64-unknown-linux-musl
+          chmod +x aspect-cli-x86_64-unknown-linux-musl
+          mv aspect-cli-x86_64-unknown-linux-musl /usr/local/bin/aspect
+      - name: Test
+        working-directory: example
+        shell: sh
+        run: $GITHUB_WORKSPACE/example/README.md || exit 1
+      - name: Coverage
+        id: coverage
+        working-directory: example
+        shell: sh
+        run: aspect coverage --github_output //src:my_test
+      - name: Upload coverage
+        if: always() && steps.coverage.outputs.files
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ steps.coverage.outputs.files }}

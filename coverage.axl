@@ -49,19 +49,27 @@ def impl(ctx) -> int:
                 for f in event.payload.test_action_output
                 if f.file.endswith("coverage.dat")
             ])
-        # TODO: populate a GITHUB_OUTPUT variable so we can use https://github.com/codecov/codecov-action
-        if event.kind == "progress":
-            out.write(event.payload.stdout)
-            err.write(event.payload.stderr)
 
 
     test.wait()
 
     # TODO: get the delta of changed files from VCS, and render 'incremental' coverage as the default presentation
-    exit = lcov.spawn(ctx, ["--list"] + coverage_dat_files).wait()
+    exit = lcov.spawn(ctx, (["--summary"] if ctx.args.summary else ["--list"])  + coverage_dat_files).wait()
 
     if not exit.success:
         err.write("\x1b[0;31mERROR\x1b[0m: process exited with code %d\n" % exit.code)
+
+    github_output = ctx.std.env.var("GITHUB_OUTPUT")
+    if ctx.args.github_output and github_output:
+        coverage_dir = ctx.std.env.var("RUNNER_TEMP") + "/coverage"
+        ctx.std.fs.create_dir_all(coverage_dir)
+        stable_files = []
+        for i, dat in enumerate(coverage_dat_files):
+            dest = coverage_dir + "/coverage_%d.dat" % i
+            ctx.std.fs.copy(dat, dest)
+            stable_files.append(dest)
+        existing = ctx.std.fs.read_to_string(github_output) if ctx.std.fs.exists(github_output) else ""
+        ctx.std.fs.write(github_output, existing + "files=" + ",".join(stable_files) + "\n")
 
     # Async: Cleanup disk space consumed by the .dat files.
     ctx.std.process.command("rm").arg("-f").args(coverage_dat_files).spawn()
@@ -71,5 +79,7 @@ coverage = task(
     implementation = impl,
     args = {
         "targets": args.positional(),
+        "summary": args.boolean(default = True),
+        "github_output": args.boolean(default = False),
     }
 )
