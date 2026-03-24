@@ -9,7 +9,9 @@ on:
       - opened
       - edited
       - synchronize
-
+  # Periodic run in case a new prerelease of the CLI breaks this extension
+  schedule:
+    - cron: '0 7 * * *'
 jobs:
   org-checks:
     uses: aspect-extensions/.github/.github/workflows/org-check.yaml@main
@@ -19,13 +21,17 @@ jobs:
       pull-requests: write
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        aspect-version:
+          - '' # latest prerelease
+          - v2026.11.9
     steps:
-      - uses: actions/checkout@v5
-      - uses: bazel-contrib/setup-bazel@0.15.0
-      - run: |
-          curl -LO https://github.com/aspect-build/aspect-cli/releases/download/v2026.11.8/aspect-cli-x86_64-unknown-linux-musl
-          chmod +x aspect-cli-x86_64-unknown-linux-musl
-          mv aspect-cli-x86_64-unknown-linux-musl /usr/local/bin/aspect
+      - uses: actions/checkout@v6
+      - uses: bazel-contrib/setup-bazel@0.18.0
+      - uses: aspect-extensions/.github/.github/actions/setup-aspect-cli@main
+        with:
+          version: ${{ matrix.aspect-version }}
       - name: Test
         working-directory: example
         shell: sh
