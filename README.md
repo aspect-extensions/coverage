@@ -1,3 +1,5 @@
+> DEPRECATED: aspect cli now comes with a builtin `aspect test --coverage` flag.
+
 Replacement for the 'bazel coverage' command:
 
 - we don't accidentally bust the analysis cache with 'coverage' flags differing from 'test'
